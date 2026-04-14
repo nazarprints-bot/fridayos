@@ -6,15 +6,19 @@ interface UseVoiceReturn {
   transcript: string;
   startListening: () => void;
   stopListening: () => void;
-  speak: (text: string, style?: 'Calm Professional' | 'Enthusiastic' | 'Neutral') => void;
+  speak: (text: string, options?: { style?: VoiceStyle, pitch?: number, rate?: number, voiceName?: string }) => void;
   error: string | null;
+  voices: SpeechSynthesisVoice[];
 }
+
+export type VoiceStyle = 'Calm Professional' | 'Enthusiastic' | 'Neutral' | 'Normal Conversation';
 
 export function useVoice(): UseVoiceReturn {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
@@ -48,6 +52,17 @@ export function useVoice(): UseVoiceReturn {
     recognitionRef.current = recognition;
     synthRef.current = window.speechSynthesis;
 
+    const updateVoices = () => {
+      if (synthRef.current) {
+        setVoices(synthRef.current.getVoices());
+      }
+    };
+
+    updateVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
+
     return () => {
       if (recognitionRef.current) recognitionRef.current.stop();
       if (synthRef.current) synthRef.current.cancel();
@@ -72,30 +87,39 @@ export function useVoice(): UseVoiceReturn {
     }
   }, [isListening]);
 
-  const speak = useCallback((text: string, style: 'Calm Professional' | 'Enthusiastic' | 'Neutral' = 'Calm Professional') => {
+  const speak = useCallback((text: string, options: { style?: VoiceStyle, pitch?: number, rate?: number, voiceName?: string } = {}) => {
     if (!synthRef.current) return;
 
     synthRef.current.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    const voices = synthRef.current.getVoices();
+    const availableVoices = synthRef.current.getVoices();
     
-    const fridayVoice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha')) || voices[0];
-    if (fridayVoice) utterance.voice = fridayVoice;
+    let selectedVoice = availableVoices.find(v => v.name === options.voiceName);
+    if (!selectedVoice) {
+      selectedVoice = availableVoices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha')) || availableVoices[0];
+    }
     
-    switch (style) {
+    if (selectedVoice) utterance.voice = selectedVoice;
+    
+    // Apply style defaults
+    switch (options.style) {
       case 'Enthusiastic':
-        utterance.pitch = 1.3;
-        utterance.rate = 1.1;
+        utterance.pitch = options.pitch ?? 1.3;
+        utterance.rate = options.rate ?? 1.1;
+        break;
+      case 'Normal Conversation':
+        utterance.pitch = options.pitch ?? 1.0;
+        utterance.rate = options.rate ?? 1.05;
         break;
       case 'Neutral':
-        utterance.pitch = 1.0;
-        utterance.rate = 1.0;
+        utterance.pitch = options.pitch ?? 1.0;
+        utterance.rate = options.rate ?? 1.0;
         break;
       case 'Calm Professional':
       default:
-        utterance.pitch = 1.1;
-        utterance.rate = 0.95;
+        utterance.pitch = options.pitch ?? 1.1;
+        utterance.rate = options.rate ?? 0.95;
         break;
     }
 
@@ -113,6 +137,7 @@ export function useVoice(): UseVoiceReturn {
     startListening,
     stopListening,
     speak,
-    error
+    error,
+    voices
   };
 }
