@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required)
+    //   - displayName: string (optional)
+    //   - email: string (optional)
+    //   - preferences: map (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: users/{userId}/memories
+    // Document ID: {memoryId}
+    // Fields:
+    //   - uid: string (required)
+    //   - content: string (required)
+    //   - importance: number (optional)
+    //   - timestamp: timestamp (required)
+    //
+    // Collection: users/{userId}/interactions
+    // Document ID: {interactionId}
+    // Fields:
+    //   - uid: string (required)
+    //   - role: string (required, ['user', 'model'])
+    //   - text: string (required)
+    //   - timestamp: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidMemory(data) {
+      return data.uid == request.auth.uid &&
+             data.content is string && data.content.size() < 5000 &&
+             data.timestamp is timestamp &&
+             (!('importance' in data) || data.importance is number) &&
+             (!('confidence' in data) || data.confidence is number) &&
+             (!('category' in data) || data.category in ['Personal', 'Preference', 'Task', 'Fact', 'Other']) &&
+             (!('context' in data) || data.context is string);
+    }
+
+    function isValidInteraction(data) {
+      return data.uid == request.auth.uid &&
+             data.role in ['user', 'model'] &&
+             data.text is string && data.text.size() < 10000 &&
+             data.timestamp is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+
+      match /memories/{memoryId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMemory(request.resource.data);
+        allow update: if isOwner(userId) && isValidMemory(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /interactions/{interactionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidInteraction(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

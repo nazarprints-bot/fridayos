@@ -1,0 +1,5 @@
+{
+  "name": "FRIDAY AI",
+  "description": "A voice-first AI agent inspired by FRIDAY and Jarvis, featuring an Arc Reactor UI and advanced NLU.",
+  "requestFramePermissions": ["microphone"]
+}

@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-black text-[#FFC107] antialiased;
+  }
+
+  /* Custom scrollbar for the futuristic log */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-black;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-[#FFC107]/20 rounded-full hover:bg-[#FFC107]/40 transition-colors;
+  }
+}
+
+@layer components {
+  .holographic-glow {
+    text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+  }
+}

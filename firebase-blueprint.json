@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user preferences and long-term memory snippets.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique ID of the user." },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "How the user likes to be addressed." },
+            "isMuted": { "type": "boolean" },
+            "voiceStyle": { "type": "string", "enum": ["Calm Professional", "Enthusiastic", "Neutral"] }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "createdAt"]
+    },
+    "Memory": {
+      "title": "Memory",
+      "description": "A single memory entry about the user or their interests.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "content": { "type": "string", "description": "The memory content." },
+        "importance": { "type": "number", "description": "How important this memory is (1-10)." },
+        "confidence": { "type": "number", "description": "How strongly the AI remembers this (0-1)." },
+        "category": { "type": "string", "enum": ["Personal", "Preference", "Task", "Fact", "Other"] },
+        "context": { "type": "string", "description": "Additional context for the memory." },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "content", "timestamp"]
+    },
+    "Interaction": {
+      "title": "Interaction",
+      "description": "A single message in a conversation.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "role", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "The user's profile and settings."
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": "Memory",
+      "description": "Long-term memories stored for the user."
+    },
+    "/users/{userId}/interactions/{interactionId}": {
+      "schema": "Interaction",
+      "description": "History of interactions for the user."
+    }
+  }
+}
